@@ -1,0 +1,6 @@
+WRMCB=function(e){var c=console;if(c&&c.log&&c.error){c.log('Error running batched script.');c.error(e);}}
+;
+try {
+/* module-key = 'net.getunik.confluence.skin.core:recent-spaces-loader', location = 'net/getunik/confluence/skin/core/theme/js/includes/space-recent.js' */
+require(["ajs","jquery","confluence/api/constants"],function(b,c,a){var d=function(f){var g=c("#bv-secondary-menu-content");g.find("ul.bv-recent-spaces").parent().replaceWith(c(f.template));var e=g.find("#view-all-spaces-link");if(e.size()){var i=e.text();e.html('<span class="bvicon-th-large-outline" >'+i+"</span>");g.find(".bv-header-secondary").prepend(e.parent("li"))}var h=g.find("#view-all-spaces-link-content");if(h.has("li").length==0){h.parent().remove()}c("#create-space-header").click(function(){b.trigger("analytics",{name:"create-space-from-header"});Confluence.SpaceBlueprint.Dialog.launch();return false})};b.toInit(function(){c("#bv-secondary-menu-content").on("aui-dropdown2-show",function(){if(!c("#recent-spaces-section")||!c("#recent-spaces-section").length){c.ajax({url:a.CONTEXT_PATH+"/rest/ia/1.0/spacesmenu",type:"GET",dataType:"json",cache:false,success:d})}return false})})});
+}catch(e){WRMCB(e)};

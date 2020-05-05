@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<!-- saved from url=(0086)file:///Users/chungng-a/Desktop/Software%20Engrnerring%20/userside_files/frame(1).html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <script type="text/javascript">
+        (function(window) {
+            // Allow listeners to subscribe to localStorage events.
+            var isObject = function(obj) { return Object.prototype.toString.call(obj) === '[object Object]' },
+                listeners = [];
+
+            var postMessage = function(targetWindow, mesg, targetOrigin) {
+                targetWindow.postMessage(JSON.stringify(mesg), targetOrigin);
+            };
+
+            // Listen for postMessages.
+            window.addEventListener('message', function(e) {
+                // If someone asks for a hotspotGroup, give it to them.
+                // TODO: Figure out how to make this more secure.
+                function getData(data) {
+                    if (typeof data === 'string') {
+                        try {
+                            data = JSON.parse(data);
+                        }
+                        catch (e) {
+                            // Got junk in the message, ignore.
+                            data = {};
+                        }
+                    }
+                    return data
+                }
+
+                var source = e.source,
+                    origin = e.origin,
+                    data = getData(e.data) || {},
+                    action = data.action,
+                    key = data.key,
+                    value = data.value;
+
+                switch (action) {
+                    case 'get':
+                        // Look it up in localStorage.
+                        // Use getItem to avoid calling properties like `length`.
+                        var cache = localStorage.getItem(key);
+                        postMessage(source, {
+                            action: 'set',
+                            key: key,
+                            value: (cache ? JSON.parse(cache) : null)
+                        }, origin);
+                        break;
+                    case 'set':
+                        if (value) {
+                            localStorage.setItem(key, JSON.stringify(value));
+                        }
+                        break;
+                    case 'update':
+                        var cache = localStorage.getItem(key);
+                        if (!cache) {
+                            localStorage.setItem(key, JSON.stringify(value));
+                        } else {
+                            cache = JSON.parse(cache);
+                            // Perform shallow merge if they're both objects.
+                            if (isObject(cache) && isObject(value)) {
+                                Object.keys(value).forEach(function(k) {
+                                    cache[k] = value[k];
+                                });
+                                localStorage.setItem(key, JSON.stringify(cache));
+                            }
+                        }
+                        break;
+                    case 'listen':
+                        listeners.push({
+                            source: source,
+                            origin: origin,
+                            options: data
+                        });
+                        break;
+                    //send accountId of currently logged in account
+                    case 'checkLogin':
+                        var accountId;
+                        try {
+                            accountId = localStorage.getItem('accountId');
+                        }
+                        catch (e) {
+                            accountId = null;
+                        }
+                        postMessage(source, {
+                            action: 'match',
+                            value: accountId
+                        }, origin);
+                        break;
+                }
+            });
+
+            // Post a message telling the parent we're ready.
+            postMessage(parent, {action: 'ready'}, '*');
+
+            // Listen for localStorage events and notify listeners.
+            window.addEventListener('storage', function(e) {
+                for (var i=0; i<listeners.length; i++) {
+                    var listener = listeners[i];
+                    if (listener.options.key === e.key) {
+                        postMessage(listener.source, {
+                            action: 'set',
+                            key: listener.options.key,
+                            value: JSON.parse(e.newValue)
+                        }, listener.origin);
+                    }
+                }
+            })
+
+        })(window);
+    </script>
+</head>
+<body>
+</body></html>
